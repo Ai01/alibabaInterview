@@ -1,5 +1,9 @@
 const { consoleSplit } = require('./utils');
 
+const WAIT = 'WAIT';
+const WAIT_FIRST = 'WAIT_FIRST';
+const DO = 'DO';
+
 const sleep = time =>
   new Promise(resolve => {
     setTimeout(resolve, time);
@@ -17,33 +21,38 @@ const arrange = function(name) {
     }
 
     wait(time) {
-      this.stack.push({ type: 'wait', value: time });
+      this.stack.push({ type: WAIT, value: time });
       return this;
     }
 
     waitFirst(time) {
-      this.stack.unshift({ type: 'waitFirst', value: time });
-      return this;
+      if(!this.stack[0] || (this.stack[0] && this.stack[0].type !== WAIT_FIRST)) {
+        this.stack.unshift({ type: WAIT_FIRST, value: time });
+        return this;
+      } else {
+        throw new Error('already has waitFirst')
+      }
+
     }
 
     do(task) {
-      this.stack.push({ type: 'do', value: task });
+      this.stack.push({ type: DO, value: task });
       return this;
     }
 
     execute() {
       const f = async () => {
         // waitFirst 处理
-        if (this.stack[0] && this.stack[0].type === 'waitFirst') {
+        if (this.stack[0] && this.stack[0].type === WAIT_FIRST) {
           await sleep(this.stack[0].value);
 
           console.log(`${this.name} is notified`);
           for (let i = 1; i < this.stack.length; i++) {
             const { type, value } = this.stack[i] || {};
-            if (type === 'wait') {
+            if (type === WAIT) {
               await sleep(value);
             }
-            if (type === 'do') {
+            if (type === DO) {
               console.log(`start to ${value}`);
             }
           }
@@ -51,10 +60,10 @@ const arrange = function(name) {
           console.log(`${this.name} is notified`);
           for (let i = 0; i < this.stack.length; i++) {
             const { type, value } = this.stack[i] || {};
-            if (type === 'wait') {
+            if (type === WAIT) {
               await sleep(value);
             }
-            if (type === 'do') {
+            if (type === DO) {
               console.log(`start to ${value}`);
             }
           }
@@ -67,8 +76,10 @@ const arrange = function(name) {
 };
 
 // arrange('test').do('push').execute();
-arrange('test').wait(1000).do('push').execute();
-// arrange('test')
-//   .do('push')
-//   .waitFirst(1000)
-//   .execute();
+// arrange('test').wait(1000).do('push').execute();
+arrange('test')
+  .do('pull')
+  .wait(1000)
+  .do('push')
+  .waitFirst(1000)
+  .execute();
