@@ -4,16 +4,24 @@ const { isArrayEqual, consoleSplit } = require('./utils');
 const TAG_TYPES = {
   div: 'div',
   span: 'span',
+  p: 'p'
 };
+
+// token types
+const TAG_START = 'TAG_START';
+const TAG_END_WITH_TYPE = 'TAG_END_WITH_TYPE';
+const TAG_END_WITHOUT_TYPE = 'TAG_END_WITHOUT_TYPE';
+const TAG_END_WITHOUT_TYPE_WITHOUT_SLASH = 'TAG_END_WITHOUT_TYPE_WITHOUT_SLASH';
+const TEXT = 'TEXT';
 
 // token type
 const TOKEN_TYPES = {
-  '/>': { type: 'TAG_END_WITHOUT_TYPE', value: '/>' },
-  '>': { type: 'TAG_END_WITHOUT_TYPE_WITHOUT_SLASH', value: '>' },
+  '/>': { type: TAG_END_WITHOUT_TYPE, value: '/>' },
+  '>': { type: TAG_END_WITHOUT_TYPE_WITHOUT_SLASH, value: '>' },
 };
 Object.values(TAG_TYPES).forEach(i => {
-  TOKEN_TYPES[`<${i}`] = { type: `TAG_START`, value: `${i}` };
-  TOKEN_TYPES[`</${i}>`] = { type: `TAG_END_WITH_TYPE`, value: `${i}` };
+  TOKEN_TYPES[`<${i}`] = { type: TAG_START, value: `${i}` };
+  TOKEN_TYPES[`</${i}>`] = { type: TAG_END_WITH_TYPE, value: `${i}` };
 });
 
 // 根据</, />, <, >, tag_types为分隔符，扫描出token list
@@ -35,8 +43,8 @@ const tagParserForSelfClose = tokenList => {
   tokenList = [...tokenList.filter(i => i && i.type)];
 
   // 自闭合标签的token组成
-  const structureWithProps = ['TAG_START', 'TEXT', 'TAG_END_WITHOUT_TYPE'];
-  const structureWithoutProps = ['TAG_START', 'TAG_END_WITHOUT_TYPE'];
+  const structureWithProps = [TAG_START, TEXT, TAG_END_WITHOUT_TYPE];
+  const structureWithoutProps = [TAG_START, TAG_END_WITHOUT_TYPE];
 
   for (let i = 0; i < tokenList.length; i++) {
     // 处理有props的自闭合标签
@@ -99,8 +107,8 @@ const tagParserForNotSelfClose = tokenList => {
   tokenList = [...tokenList];
 
   // 非自闭合标签的开始部分token组成
-  const structureWithProps = ['TAG_START', 'TEXT', 'TAG_END_WITHOUT_TYPE_WITHOUT_SLASH'];
-  const structureWithoutProps = ['TAG_START', 'TAG_END_WITHOUT_TYPE_WITHOUT_SLASH'];
+  const structureWithProps = [TAG_START, TEXT, TAG_END_WITHOUT_TYPE_WITHOUT_SLASH];
+  const structureWithoutProps = [TAG_START, TAG_END_WITHOUT_TYPE_WITHOUT_SLASH];
 
   for (let i = 0; i < tokenList.length; i++) {
     // 处理有props的非自闭合标签
@@ -120,12 +128,12 @@ const tagParserForNotSelfClose = tokenList => {
         };
         while (j < tokenList.length) {
           // 如果有tag_start而且type相等, sameTypeTagStart + 1
-          if(tokenList[j] && tokenList[j].type === 'TAG_START' && tokenList[j].value === tagType) {
+          if(tokenList[j] && tokenList[j].type === TAG_START && tokenList[j].value === tagType) {
             sameTypeTagStart += 1;
           }
 
           // 如果找到tag_end_with_type而且type相等,如果sameTagStart === 0那么中间的都是children
-          if (tokenList[j] && tokenList[j].type === 'TAG_END_WITH_TYPE' && tokenList[j].value === tagType) {
+          if (tokenList[j] && tokenList[j].type === TAG_END_WITH_TYPE && tokenList[j].value === tagType) {
             if(sameTypeTagStart === 0) {
               // 将children赋值
               astNode.children = tokenList.slice(i+3, j - i);
@@ -165,7 +173,7 @@ const tagParserForNotSelfClose = tokenList => {
           let j = i;
           // 找到非自闭合标签的children
           while (j < tokenList.length) {
-            if (tokenList[j] && tokenList[j].type === 'TAG_END_WITH_TYPE' && tokenList[j].value === tagType) {
+            if (tokenList[j] && tokenList[j].type === TAG_END_WITH_TYPE && tokenList[j].value === tagType) {
               if(sameTypeTagStart === 0) {
                 astNode.children = tokenList.slice(i+2, j - i);
                 tokenList.splice(j, 1);
@@ -174,7 +182,7 @@ const tagParserForNotSelfClose = tokenList => {
                 sameTypeTagStart -= 1;
               }
             }
-            if(tokenList[j] && tokenList[j].type === 'TAG_START' && tokenList[j].value === tagType) {
+            if(tokenList[j] && tokenList[j].type === TAG_START && tokenList[j].value === tagType) {
               sameTypeTagStart += 1;
             }
             j++;
@@ -222,3 +230,11 @@ const res2 = htmlParser(htmlStr2);
 console.log('input',htmlStr2);
 console.log('res', res2);
 
+consoleSplit();
+
+// test3
+// 增加p标签
+const htmlStr3 = '<div id="main" data-x="hello"><p id="test-p" >Hello</p><span id="test-span" /><div id="test" /></div>';
+const res3 = htmlParser(htmlStr3);
+console.log('input',htmlStr3);
+console.log('res', res3);
