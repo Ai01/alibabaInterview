@@ -33,6 +33,7 @@ const arrange = function(name) {
 
     execute() {
       const f = async () => {
+        // waitFirst 处理
         if (this.stack[0] && this.stack[0].type === 'waitFirst') {
           await sleep(this.stack[0].value);
 
